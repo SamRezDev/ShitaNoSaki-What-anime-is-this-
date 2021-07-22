@@ -33,7 +33,7 @@ export default function RequestContainer() {
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-      fetch("https://trace.moe/api/search", {
+      fetch("https://api.trace.moe/search", {
         method: "POST",
         body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.8) }),
         headers: { "Content-Type": "application/json" },
