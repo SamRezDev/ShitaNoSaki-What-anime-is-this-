@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import "./RequestContainer.css";
 import QuerryAnswer from "./QuerryAnswer";
 import Dropzone from "react-dropzone";
+import { storage } from "../firebase/firebase";
+
 export default function RequestContainer() {
   const [selectedFile, setselectedFile] = useState();
   const [selectedFileURL, setselectedFileURL] = useState();
@@ -9,21 +11,55 @@ export default function RequestContainer() {
   const [Loaded, setLoaded] = useState(false);
   const [NoImageState, setNoImageState] = useState(false);
   const [FetchingStatus, setFetchingStatus] = useState(false);
+  const [FireBaseLink, setFireBaseLink] = useState("");
+  const [progress, setProgress] = useState(0);
+  const [FireBaseUpload, setFireBaseUpload] = useState("")
 
-  function onFileChange(e) {
-    //setselectedFile(e.target.files[0])
-    setselectedFileURL(URL.createObjectURL(e.target.files[0]));
-    setselectedFile(e.target.files[0]);
-    console.log(NoImageState);
-  }
+  
 
-  useEffect(() => {}, [FetchingStatus]);
+  useEffect(() => {
+    setselectedFileURL (setselectedFileURL);
+    setselectedFile(selectedFile);
+    console.log(selectedFile);
+  }, [QuerryAnswer,selectedFile,setselectedFileURL,FireBaseUpload,FetchingStatus]);
 
-  function CheckImage() {
+
+  async function handleUpload ()  {
+    const uploadTask = storage.ref(`images/${selectedFile.name}`).put(selectedFile);
+    uploadTask.on(
+      "state_changed",
+      snapshot => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+        );
+        setProgress(progress);
+        console.log(progress)
+      },
+      error => {
+        console.log(error);
+      },
+      () => {
+        storage
+          .ref("images")
+          .child(selectedFile.name)
+          .getDownloadURL()
+          .then(url => {
+            console.log("THIS LINK IS FROM  HANDLE UPLOAD PRE SET FUNCTION"+ url)
+            setFireBaseUpload(url)
+            console.log("THIS LINK IS FROM  HANDLE UPLOAD POST SET FUNCTION"+ FireBaseUpload)
+            CheckImage(url)
+          });
+      }
+    );
+  };
+
+
+function CheckImage(ActualUrl) {
     setFetchingStatus(true);
     if (selectedFile) {
-      const formdata = new FormData();
-      formdata.append("image", selectedFile, selectedFile.name);
+      const formData = new FormData();
+      formData.append("image", selectedFile);
+
       var img = new Image();
       img.src = selectedFileURL;
 
@@ -32,19 +68,20 @@ export default function RequestContainer() {
       canvas.height = img.naturalHeight;
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      console.log("THIS LINK IS FROM CHECK IMAGE FUNCTION"+ ActualUrl)
+      setFireBaseLink(encodeURIComponent(ActualUrl))
+      
 
-      fetch("https://api.trace.moe/search", {
-        method: "POST",
-        body: JSON.stringify({ image: canvas.toDataURL("image/jpeg", 0.8) }),
-        headers: { "Content-Type": "application/json" },
-      })
+      fetch(
+        `https://api.trace.moe/search?anilistInfo&url=${FireBaseLink}`
+      )
         .then((res) => res.json())
         .then((result) => {
           setResponse(result);
           setLoaded(true);
           setFetchingStatus(false);
-          /*  console.log(result)
-      console.log("CacheHit is "+result.CacheHit);
+          console.log(result)
+      /*  console.log("CacheHit is "+result.CacheHit);
       console.log("DOCS "+result.docs.map( element => element.anime)) */
         });
 
@@ -63,7 +100,9 @@ export default function RequestContainer() {
               {({ getRootProps, getInputProps }) => (
                 <section className="AwaitingImage">
                   <div {...getRootProps()}>
-                    <input {...getInputProps()} onChange={onFileChange} />
+                    <input {...getInputProps()} onChange={(e) =>{ setselectedFile(e.target.files[0])
+              setselectedFileURL(URL.createObjectURL(e.target.files[0]))
+            }} />
                     <p> Drop your screenshot here ! </p>
                   </div>
                 </section>
@@ -79,10 +118,12 @@ export default function RequestContainer() {
             name=""
             id="img"
             className="InteractionImg"
-            onChange={onFileChange}
+            onChange={(e) =>{ setselectedFile(e.target.files[0])
+              setselectedFileURL(URL.createObjectURL(e.target.files[0]))
+            }}
             accept="image/x-png,image/jpeg ,image/jpg"
           />
-          <button onClick={CheckImage} className="SubmitButton">
+          <button onClick={handleUpload} className="SubmitButton">
             {" "}
             submit
           </button>
