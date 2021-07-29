@@ -3,39 +3,36 @@ import "./RequestContainer.css";
 import QuerryAnswer from "./QuerryAnswer";
 import Dropzone from "react-dropzone";
 import { storage } from "../firebase/firebase";
+import ProgressBar from "./progress-bar.component";
 
 export default function RequestContainer() {
   const [selectedFile, setselectedFile] = useState();
   const [selectedFileURL, setselectedFileURL] = useState();
-  const [Response, setResponse] = useState([]);
+  const [Response, setResponse] = useState();
   const [Loaded, setLoaded] = useState(false);
   const [NoImageState, setNoImageState] = useState(false);
   const [FetchingStatus, setFetchingStatus] = useState(false);
   const [FireBaseLink, setFireBaseLink] = useState("");
   const [progress, setProgress] = useState(0);
-  const [FireBaseUpload, setFireBaseUpload] = useState("")
-
-  
 
   useEffect(() => {
-    setselectedFileURL (setselectedFileURL);
+    setselectedFileURL(setselectedFileURL);
     setselectedFile(selectedFile);
-    console.log(selectedFile);
-  }, [QuerryAnswer,selectedFile,setselectedFileURL,FireBaseUpload,FetchingStatus]);
+  }, [selectedFile, setselectedFileURL, FetchingStatus]);
 
-
-  async function handleUpload ()  {
-    const uploadTask = storage.ref(`images/${selectedFile.name}`).put(selectedFile);
+  function handleUpload() {
+    const uploadTask = storage
+      .ref(`images/${selectedFile.name}`)
+      .put(selectedFile);
     uploadTask.on(
       "state_changed",
-      snapshot => {
+      (snapshot) => {
         const progress = Math.round(
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100
         );
         setProgress(progress);
-        console.log(progress)
       },
-      error => {
+      (error) => {
         console.log(error);
       },
       () => {
@@ -43,18 +40,14 @@ export default function RequestContainer() {
           .ref("images")
           .child(selectedFile.name)
           .getDownloadURL()
-          .then(url => {
-            console.log("THIS LINK IS FROM  HANDLE UPLOAD PRE SET FUNCTION"+ url)
-            setFireBaseUpload(url)
-            console.log("THIS LINK IS FROM  HANDLE UPLOAD POST SET FUNCTION"+ FireBaseUpload)
-            CheckImage(url)
+          .then((url) => {
+            CheckImage(url);
           });
       }
     );
-  };
+  }
 
-
-function CheckImage(ActualUrl) {
+  function CheckImage(ActualUrl) {
     setFetchingStatus(true);
     if (selectedFile) {
       const formData = new FormData();
@@ -68,24 +61,19 @@ function CheckImage(ActualUrl) {
       canvas.height = img.naturalHeight;
       var ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      console.log("THIS LINK IS FROM CHECK IMAGE FUNCTION"+ ActualUrl)
-      setFireBaseLink(encodeURIComponent(ActualUrl))
-      
 
-      fetch(
-        `https://api.trace.moe/search?anilistInfo&url=${FireBaseLink}`
-      )
-        .then((res) => res.json())
-        .then((result) => {
-          setResponse(result);
-          setLoaded(true);
-          setFetchingStatus(false);
-          console.log(result)
-      /*  console.log("CacheHit is "+result.CacheHit);
-      console.log("DOCS "+result.docs.map( element => element.anime)) */
-        });
+      setFireBaseLink(encodeURIComponent(ActualUrl));
 
-      // console.log("Checked image" +selectedFile,selectedFile.name)
+      if (typeof selectedFile !== "undefined") {
+        fetch(`https://api.trace.moe/search?anilistInfo&url=${FireBaseLink}`)
+          .then((res) => res.json())
+          .then((result) => {
+            setResponse(result);
+            setLoaded(true);
+            setFetchingStatus(false);
+            console.log(result);
+          });
+      }
     } else {
       setNoImageState(true);
     }
@@ -100,9 +88,17 @@ function CheckImage(ActualUrl) {
               {({ getRootProps, getInputProps }) => (
                 <section className="AwaitingImage">
                   <div {...getRootProps()}>
-                    <input {...getInputProps()} onChange={(e) =>{ setselectedFile(e.target.files[0])
-              setselectedFileURL(URL.createObjectURL(e.target.files[0]))
-            }} />
+                    <input
+                      {...getInputProps()}
+                      onChange={(e) => {
+                        if (e.target.files[0]) {
+                          setselectedFile(e.target.files[0]);
+                          setselectedFileURL(
+                            URL.createObjectURL(e.target.files[0])
+                          );
+                        }
+                      }}
+                    />
                     <p> Drop your screenshot here ! </p>
                   </div>
                 </section>
@@ -118,8 +114,11 @@ function CheckImage(ActualUrl) {
             name=""
             id="img"
             className="InteractionImg"
-            onChange={(e) =>{ setselectedFile(e.target.files[0])
-              setselectedFileURL(URL.createObjectURL(e.target.files[0]))
+            onChange={(e) => {
+              if (e.target.files[0]) {
+                setselectedFile(e.target.files[0]);
+                setselectedFileURL(URL.createObjectURL(e.target.files[0]));
+              }
             }}
             accept="image/x-png,image/jpeg ,image/jpg"
           />
@@ -127,6 +126,9 @@ function CheckImage(ActualUrl) {
             {" "}
             submit
           </button>
+          <div className="ProgressBar">
+            <ProgressBar completed={progress} />{" "}
+          </div>
         </div>
       </div>
       {Loaded ? (

@@ -43,7 +43,8 @@ export default function QuerryAnswer(props) {
 				{displayQuerryStyle ? (
 					<div className="AnswerTitle">
 						{' '}
-						Episode N°{Filter.episode} of<br /> <h1>{Filter.anilist.title.english}</h1>
+						Episode N°{Filter.episode} of
+						<br /> <h1>{Filter.anilist.title.english}</h1>
 					</div>
 				) : (
 					<div className="AnswerTitleNotEnough">
